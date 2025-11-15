@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Maximize2, Minimize2 } from 'lucide-react'
 
 const motionVariants = {
   float: {
@@ -43,14 +44,17 @@ function OverlayLayer({ overlays = [] }) {
                 left: `${it.x * 100}%`,
                 top: `${it.y * 100}%`,
                 fontSize: `${it.size}px`,
-                filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.15))'
+                filter: layer.type === 'characters'
+                  ? 'drop-shadow(0 6px 12px rgba(0,0,0,0.18))'
+                  : 'drop-shadow(0 2px 6px rgba(0,0,0,0.15))',
+                zIndex: layer.type === 'characters' ? 20 : 10
               }}
               initial={{ opacity: 0, y: 6, scale: 0.98 }}
               animate={{
-                opacity: [0.4, 1, 0.7, 1],
+                opacity: [0.5, 1, 0.8, 1],
                 y: [0, -8, 0, -6],
                 rotate: layer.type === 'confetti' ? [0, 45, -45, 0] : 0,
-                scale: [1, 1.06, 1],
+                scale: layer.type === 'characters' ? [1, 1.04, 1] : [1, 1.06, 1],
               }}
               transition={{ delay: it.delay, duration: it.duration, repeat: Infinity, ease: 'easeInOut' }}
             >
@@ -65,13 +69,37 @@ function OverlayLayer({ overlays = [] }) {
 
 export default function AnimatedMessage({ frames = [], theme = 'default', caption = '', overlays = [] }) {
   const [index, setIndex] = useState(0)
+  const [isFs, setIsFs] = useState(false)
   const frame = frames[index] || {}
+  const containerRef = useRef(null)
 
   useEffect(() => {
     if (!frames.length) return
     const id = setInterval(() => setIndex((i) => (i + 1) % frames.length), Math.max(1800, (frame.duration || 2.4) * 1000))
     return () => clearInterval(id)
   }, [frames, frame.duration])
+
+  useEffect(() => {
+    function handleChange() {
+      const active = !!document.fullscreenElement
+      setIsFs(active)
+    }
+    document.addEventListener('fullscreenchange', handleChange)
+    return () => document.removeEventListener('fullscreenchange', handleChange)
+  }, [])
+
+  const goFullscreen = async () => {
+    if (!containerRef.current) return
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen()
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch (e) {
+      // noop
+    }
+  }
 
   const accent = useMemo(() => {
     switch (theme) {
@@ -91,13 +119,25 @@ export default function AnimatedMessage({ frames = [], theme = 'default', captio
   }, [theme])
 
   return (
-    <div className={`relative w-full`}>
+    <div ref={containerRef} className={`relative w-full ${isFs ? 'h-screen' : ''}`}>
       <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accent} blur-2xl rounded-3xl opacity-60`}/>
+
+      {/* Controls */}
+      <div className="absolute top-3 right-3 z-30 pointer-events-auto">
+        <button
+          onClick={goFullscreen}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/80 hover:bg-white text-slate-700 border border-white/70 shadow-md"
+          title={isFs ? 'Exit full screen' : 'Full screen'}
+        >
+          {isFs ? <Minimize2 className="w-4 h-4"/> : <Maximize2 className="w-4 h-4"/>}
+          <span className="text-sm font-medium">{isFs ? 'Exit' : 'Full screen'}</span>
+        </button>
+      </div>
 
       {/* Overlays layer */}
       <OverlayLayer overlays={overlays} />
 
-      <div className="relative backdrop-blur-xl bg-white/50 border border-white/40 rounded-3xl p-6 md:p-8 shadow-xl overflow-hidden">
+      <div className={`relative backdrop-blur-xl bg-white/50 border border-white/40 rounded-3xl p-6 md:p-8 shadow-xl overflow-hidden ${isFs ? 'h-full flex items-center' : ''}`}>
         <div className="flex items-center gap-3 text-2xl md:text-3xl">
           <AnimatePresence mode="wait">
             <motion.div key={index}
