@@ -10,7 +10,7 @@ const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 export default function App() {
   const [input, setInput] = useState('You are my favorite person. Thank you for being you. I miss you when we are apart, but you are always in my heart. 💖')
   const [loading, setLoading] = useState(false)
-  const [data, setData] = useState({ frames: [], theme: 'default', caption: '', tags: [] })
+  const [data, setData] = useState({ frames: [], theme: 'default', caption: '', tags: [], overlays: [] })
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export default function App() {
                     className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-pink-600 text-white font-semibold shadow-lg shadow-pink-600/20 hover:bg-pink-500 transition disabled:opacity-60"
                   >
                     <Heart className="w-5 h-5" />
-                    Animate my feelings
+                    {loading ? 'Animating...' : 'Animate my feelings'}
                     <ArrowRight className="w-5 h-5" />
                   </button>
                   {error ? <span className="text-sm text-rose-600">{error}</span> : null}
@@ -105,7 +105,7 @@ export default function App() {
             </div>
 
             <div className="space-y-6">
-              <AnimatedMessage frames={data.frames} theme={data.theme} caption={data.caption} />
+              <AnimatedMessage frames={data.frames} theme={data.theme} caption={data.caption} overlays={data.overlays} />
               <div className="backdrop-blur-xl bg-white/60 border border-white/50 rounded-3xl p-6 shadow-xl">
                 <div className="text-sm text-slate-600 mb-2">Vibes detected</div>
                 <div className="flex flex-wrap gap-2">
